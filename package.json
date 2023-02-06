@@ -1,0 +1,48 @@
+{
+  "name": "cyberconnect-v2",
+  "version": "0.0.1-alpha.1",
+  "description": "CyberConnect official v2 SDK",
+  "main": "lib/index.js",
+  "bin": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc -p .",
+    "release": "standard-version"
+  },
+  "standard-version": {
+    "skip": {
+      "commit": true
+    }
+  },
+  "keywords": [
+    "cyberconnect",
+    "cybertino",
+    "cybertinolab",
+    "cyberlab",
+    "cyberchat",
+    "connect"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cyberconnecthq/cyberconnect-v2"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cyberconnecthq/cyberconnect-v2/issues"
+  },
+  "homepage": "https://github.com/cyberconnecthq/cyberconnect-v2#readme",
+  "dependencies": {
+    "@ethersproject/bytes": "^5.6.1",
+    "@ethersproject/strings": "^5.6.0",
+    "@stablelib/sha256": "^1.0.1",
+    "bs58": "^4.0.1",
+    "idb": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/bs58": "^4.0.1",
+    "prettier": "^2.5.1",
+    "standard-version": "^9.3.2",
+    "typescript": "^4.4.4"
+  }
+}
