@@ -5,9 +5,9 @@
 ### Installation
 
 ```sh
-npm install cyberconnect-v2
+npm install @cyberlab/cyberconnect-v2
 or
-yarn add cyberconnect-v2
+yarn add @cyberlab/cyberconnect-v2
 ```
 
 ### Basic usage
@@ -17,7 +17,7 @@ yarn add cyberconnect-v2
 ```ts
 import CyberConnect, {
   Env
-} from 'cyberconnect-v2';
+} from '@cyberlab/cyberconnect-v2';
 
 const cyberConnect = new CyberConnect({
   namespace: 'CyberConnect',
