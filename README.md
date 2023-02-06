@@ -38,8 +38,8 @@ const cyberConnect = new CyberConnect({
 cyberConnect.follow(address, handle);
 ```
 
-- `address` - The target wallet address to follow.
-- `handle` - The handle of the target wallet address.
+- `address` - Current signed in wallet address.
+- `handle` - The target handle.
 
 #### Unfollow
 
@@ -47,8 +47,8 @@ cyberConnect.follow(address, handle);
 cyberConnect.unfollow(address, handle);
 ```
 
-- `address` - The target wallet address to follow.
-- `handle` - The handle of the target wallet address.
+- `address` - Current signed in wallet address.
+- `handle` - The target handle.
 
 ## Contributing
 
