@@ -1,5 +1,5 @@
 import { endpoints } from './network';
-import { follow, registerSigningKey, unfollow } from './queries';
+import { follow, registerSigningKey, unfollow, publish } from './queries';
 import { ConnectError, ErrorCode } from './error';
 import {
   Blockchain,
@@ -7,6 +7,7 @@ import {
   Endpoint,
   FollowRequest,
   UnfollowRequest,
+  PublishRequest,
 } from './types';
 import { getAddressByProvider, getSigningKeySignature } from './utils';
 import { Env } from '.';
@@ -189,6 +190,65 @@ class CyberConnect {
         throw new ConnectError(
           ErrorCode.GraphqlError,
           resp?.data?.unfollow.status,
+        );
+      }
+    } catch (e: any) {
+      throw new ConnectError(ErrorCode.GraphqlError, e.message || e);
+    }
+  }
+
+  async createPost(post: { title: string; body: string }) {
+    return await this.publish(post, '');
+  }
+
+  async updatePost(post: { title: string; body: string }, id: string) {
+    return await this.publish(post, id);
+  }
+
+  private async publish(post: { title: string; body: string }, id: string) {
+    try {
+      this.address = await this.getAddress();
+      await this.authWithSigningKey();
+
+      const content = JSON.stringify({
+        title: post.title,
+        body: post.body,
+        address: this.address,
+        ts: Date.now(),
+      });
+
+      const signature = await signWithSigningKey(content, this.address);
+      const publicKey = await getPublicKey(this.address);
+
+      const params: { id: string; input: PublishRequest } = {
+        id: id,
+        input: {
+          author: this.address,
+          content: content,
+          signature,
+          signingKey: publicKey,
+        },
+      };
+
+      const resp = await publish(params, this.endpoint.cyberConnectApi);
+
+      if (resp?.data?.publish.status === 'SUCCESS') {
+        return resp?.data?.publish;
+      }
+
+      if (resp?.data?.publish.status === 'INVALID_SIGNATURE') {
+        await clearSigningKey();
+
+        throw new ConnectError(
+          ErrorCode.GraphqlError,
+          resp?.data?.follow.status,
+        );
+      }
+
+      if (resp?.data?.publish.status !== 'SUCCESS') {
+        throw new ConnectError(
+          ErrorCode.GraphqlError,
+          resp?.data?.follow.status,
         );
       }
     } catch (e: any) {

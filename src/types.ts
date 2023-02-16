@@ -167,3 +167,10 @@ export interface FollowRequest {
   signingKey: string;
   signature: string;
 }
+
+export interface PublishRequest {
+  author: string;
+  content: string;
+  signature: string;
+  signingKey: string;
+}

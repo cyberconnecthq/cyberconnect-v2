@@ -8,9 +8,28 @@ import {
   AckAllNotificationsInput,
   FollowRequest,
   UnfollowRequest,
+  PublishRequest,
 } from './types';
 
 export type Query = 'connect' | 'disconnect';
+
+export const publishSchema = (params: {
+  input: PublishRequest;
+  id: string;
+}) => {
+  return {
+    operationName: 'publish',
+    query: `mutation publish($id: String, $input: PublishRequest!) {
+	          publish(id: $id, input: $input) {
+              status
+	      id
+              arweaveTxHash
+
+		  }
+    }`,
+    variables: { id: params?.id, input: params.input },
+  };
+};
 
 export const registerSigningKeySchema = (input: RegisterSigningKeyInput) => {
   return {
@@ -162,6 +181,7 @@ export const authSchema = ({
 };
 
 export const querySchemas = {
+  publish: publishSchema,
   follow: followSchema,
   unfollow: unfollowSchema,
   connect: connectQuerySchema,
@@ -233,6 +253,14 @@ export const auth = ({
     network,
   });
   return handleQuery(result, url);
+};
+
+export const publish = (
+  params: { input: PublishRequest; id: string },
+  url: string,
+) => {
+  const schema = querySchemas['publish'](params);
+  return handleQuery(schema, url);
 };
 
 export const unfollow = (input: UnfollowRequest, url: string) => {
