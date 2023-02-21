@@ -53,12 +53,13 @@ cyberConnect.unfollow(address, handle);
 ### Create post
 
 ```ts
-cyberConnect.createPost(post);
+cyberConnect.createPost(post, handle);
 ```
 
 **Parameters**
 
 - `post: Post` - post content
+- `handle: string` - profile handle
 
 ```ts
 type Post = {
@@ -95,12 +96,14 @@ enum Status {
 ### Update post
 
 ```ts
-cyberConnect.updatePost(post, id);
+cyberConnect.updatePost(post, handle, id);
 ```
 
 **Parameters**
 
 - `post: Post` - post content
+
+- `handle: string` - profile handle
 
 ```ts
 type Post = {
@@ -133,6 +136,99 @@ enum Status {
   INVALID_SIGNATURE,
   MESSAGE_EXPIRED,
   INVALID_SIGNING_KEY,
+}
+```
+
+### Like post
+
+```ts
+cyberConnect.like(postId);
+```
+
+**Parameters**
+
+- `postId: string` - post id
+
+**Return**
+
+- `response: LikeResponse` - like response
+
+```ts
+type LikeResponse = {
+  status: Status;
+};
+
+enum Status {
+  SUCCESS,
+  INVALID_ADDRESS,
+  RATE_LIMITED,
+  POST_NOT_FOUND,
+  ALREADY_DONE,
+  INVALID_MESSAGE,
+  INVALID_SIGNATURE,
+  MESSAGE_EXPIRED,
+}
+```
+
+### Dislike post
+
+```ts
+cyberConnect.dislike(postId);
+```
+
+**Parameters**
+
+- `postId: string` - post id
+
+**Return**
+
+- `response: DislikeResponse` - dislike response
+
+```ts
+type DislikeResponse = {
+  status: Status;
+};
+
+enum Status {
+  SUCCESS,
+  INVALID_ADDRESS,
+  RATE_LIMITED,
+  POST_NOT_FOUND,
+  ALREADY_DONE,
+  INVALID_MESSAGE,
+  INVALID_SIGNATURE,
+  MESSAGE_EXPIRED,
+}
+```
+
+### Cancel reaction(like/dislike) on post
+
+```ts
+cyberConnect.cancel(postId);
+```
+
+**Parameters**
+
+- `postId: string` - post id
+
+**Return**
+
+- `response: CancelLikeResponse` - cancel reaction response
+
+```ts
+type CancelLikeResponse = {
+  status: Status;
+};
+
+enum Status {
+  SUCCESS,
+  INVALID_ADDRESS,
+  RATE_LIMITED,
+  POST_NOT_FOUND,
+  ALREADY_DONE,
+  INVALID_MESSAGE,
+  INVALID_SIGNATURE,
+  MESSAGE_EXPIRED,
 }
 ```
 

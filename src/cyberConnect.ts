@@ -1,5 +1,13 @@
 import { endpoints } from './network';
-import { follow, registerSigningKey, unfollow, publish } from './queries';
+import {
+  follow,
+  registerSigningKey,
+  unfollow,
+  publish,
+  like as likeQuery,
+  dislike as dislikeQuery,
+  cancelLike,
+} from './queries';
 import { ConnectError, ErrorCode } from './error';
 import {
   Blockchain,
@@ -8,6 +16,8 @@ import {
   FollowRequest,
   UnfollowRequest,
   PublishRequest,
+  ReactType,
+  ReactRequest,
 } from './types';
 import { getAddressByProvider, getSigningKeySignature } from './utils';
 import { Env } from '.';
@@ -197,15 +207,136 @@ class CyberConnect {
     }
   }
 
-  async createPost(post: { title: string; body: string }) {
-    return await this.publish(post, '');
+  async createPost(post: { title: string; body: string }, handle: string) {
+    return await this.publish(post, handle, '');
   }
 
-  async updatePost(post: { title: string; body: string }, id: string) {
-    return await this.publish(post, id);
+  async updatePost(
+    post: { title: string; body: string },
+    handle: string,
+    id: string,
+  ) {
+    return await this.publish(post, handle, id);
   }
 
-  private async publish(post: { title: string; body: string }, id: string) {
+  async like(postId: string) {
+    try {
+      const params = await this.getReactParams(postId, 'like');
+      const resp = await likeQuery(params, this.endpoint.cyberConnectApi);
+
+      if (resp?.data?.like.status === 'SUCCESS') {
+        return resp?.data?.like.status;
+      }
+
+      if (resp?.data?.like.status === 'INVALID_SIGNATURE') {
+        await clearSigningKey();
+
+        throw new ConnectError(ErrorCode.GraphqlError, resp?.data?.like.status);
+      }
+
+      if (resp?.data?.like.status !== 'SUCCESS') {
+        throw new ConnectError(ErrorCode.GraphqlError, resp?.data?.like.status);
+      }
+    } catch (e: any) {
+      throw new ConnectError(ErrorCode.GraphqlError, e.message || e);
+    }
+  }
+
+  async dislike(postId: string) {
+    try {
+      const params = await this.getReactParams(postId, 'dislike');
+      const resp = await dislikeQuery(params, this.endpoint.cyberConnectApi);
+
+      if (resp?.data?.dislike.status === 'SUCCESS') {
+        return resp?.data?.dislike.status;
+      }
+
+      if (resp?.data?.dislike.status === 'INVALID_SIGNATURE') {
+        await clearSigningKey();
+
+        throw new ConnectError(
+          ErrorCode.GraphqlError,
+          resp?.data?.dislike.status,
+        );
+      }
+
+      if (resp?.data?.dislike.status !== 'SUCCESS') {
+        throw new ConnectError(
+          ErrorCode.GraphqlError,
+          resp?.data?.dislike.status,
+        );
+      }
+    } catch (e: any) {
+      throw new ConnectError(ErrorCode.GraphqlError, e.message || e);
+    }
+  }
+
+  async cancelReaction(postId: string) {
+    try {
+      const params = await this.getReactParams(postId, 'cancel');
+      const resp = await cancelLike(params, this.endpoint.cyberConnectApi);
+
+      if (resp?.data?.cancelLike.status === 'SUCCESS') {
+        return resp?.data?.cancelLike.status;
+      }
+
+      if (resp?.data?.cancelLike.status === 'INVALID_SIGNATURE') {
+        await clearSigningKey();
+
+        throw new ConnectError(
+          ErrorCode.GraphqlError,
+          resp?.data?.dislike.status,
+        );
+      }
+
+      if (resp?.data?.cancelLike.status !== 'SUCCESS') {
+        throw new ConnectError(
+          ErrorCode.GraphqlError,
+          resp?.data?.dislike.status,
+        );
+      }
+    } catch (e: any) {
+      throw new ConnectError(ErrorCode.GraphqlError, e.message || e);
+    }
+  }
+
+  private async getReactParams(postId: string, operation: ReactType) {
+    try {
+      this.address = await this.getAddress();
+      await this.authWithSigningKey();
+
+      const message = {
+        op: operation,
+        address: this.address,
+        postId,
+        ts: Date.now(),
+      };
+
+      const signature = await signWithSigningKey(
+        JSON.stringify(message),
+        this.address,
+      );
+      const publicKey = await getPublicKey(this.address);
+
+      const params: ReactRequest = {
+        address: this.address,
+        postId,
+        message: JSON.stringify(message),
+        signature,
+        signingKey: publicKey,
+      };
+
+      return params;
+    } catch (e: any) {
+      throw new ConnectError(ErrorCode.GraphqlError, e.message || e);
+    }
+  }
+
+  private async publish(
+    post: { title: string; body: string },
+    handle: string,
+    id: string,
+  ) {
     try {
       this.address = await this.getAddress();
       await this.authWithSigningKey();
@@ -227,6 +358,7 @@ class CyberConnect {
           content: content,
           signature,
           signingKey: publicKey,
+          handle,
         },
       };
 

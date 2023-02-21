@@ -1,6 +1,6 @@
 {
   "name": "@cyberlab/cyberconnect-v2",
-  "version": "0.0.1-alpha.9",
+  "version": "0.0.1-alpha.10",
   "description": "CyberConnect official v2 SDK",
   "main": "lib/index.js",
   "bin": "lib/index.js",
