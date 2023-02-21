@@ -204,7 +204,7 @@ enum Status {
 ### Cancel reaction(like/dislike) on post
 
 ```ts
-cyberConnect.cancel(postId);
+cyberConnect.cancelReaction(postId);
 ```
 
 **Parameters**
