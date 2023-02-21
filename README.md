@@ -59,7 +59,7 @@ cyberConnect.createPost(post, handle);
 **Parameters**
 
 - `post: Post` - post content
-- `handle: string` - profile handle
+- `handle: string` - author's profile handle
 
 ```ts
 type Post = {
@@ -103,7 +103,7 @@ cyberConnect.updatePost(post, handle, id);
 
 - `post: Post` - post content
 
-- `handle: string` - profile handle
+- `handle: string` - author's profile handle
 
 ```ts
 type Post = {

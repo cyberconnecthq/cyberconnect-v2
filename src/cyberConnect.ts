@@ -334,7 +334,7 @@ class CyberConnect {
 
   private async publish(
     post: { title: string; body: string },
-    handle: string,
+    handle: string = '',
     id: string,
   ) {
     try {
