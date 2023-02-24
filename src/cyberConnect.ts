@@ -40,6 +40,7 @@ class CyberConnect {
   chainRef: string = '';
   provider: any = null;
   signingMessageEntity: string | undefined = '';
+  chainId: number;
 
   constructor(config: Config) {
     const { provider, namespace, env, chainRef, chain, signingMessageEntity } =
@@ -49,6 +50,7 @@ class CyberConnect {
       throw new ConnectError(ErrorCode.EmptyNamespace);
     }
 
+    this.chainId = env === Env.PRODUCTION ? 56 : 97;
     this.namespace = namespace;
     this.endpoint = endpoints[env || Env.PRODUCTION];
     this.chain = chain || Blockchain.ETH;
@@ -111,6 +113,45 @@ class CyberConnect {
     }
   }
 
+  private async retryFollow(address: string, handle: string) {
+    try {
+      this.address = await this.getAddress();
+      await this.authWithSigningKey();
+
+      const message = {
+        op: 'follow',
+        address,
+        handle: handle,
+        ts: Date.now(),
+      };
+
+      const signature = await signWithSigningKey(
+        JSON.stringify(message),
+        this.address,
+      );
+      const publicKey = await getPublicKey(this.address);
+
+      const params: FollowRequest = {
+        address,
+        handle,
+        message: JSON.stringify(message),
+        signature,
+        signingKey: publicKey,
+      };
+
+      const resp = await follow(params, this.endpoint.cyberConnectApi);
+
+      if (resp?.data?.follow.status !== 'SUCCESS') {
+        throw new ConnectError(
+          ErrorCode.GraphqlError,
+          'retry failed' + resp?.data?.follow.status,
+        );
+      }
+    } catch (e: any) {
+      throw new ConnectError(ErrorCode.GraphqlError, e.message || e);
+    }
+  }
+
   async follow(address: string, handle: string) {
     try {
       this.address = await this.getAddress();
@@ -148,7 +189,9 @@ class CyberConnect {
         );
       }
 
-      if (resp?.data?.follow.status !== 'SUCCESS') {
+      if (resp?.data?.follow.status === 'MESSAGE_EXPIRED') {
+        await this.retryFollow(address, handle);
+      } else if (resp?.data?.follow.status !== 'SUCCESS') {
         throw new ConnectError(
           ErrorCode.GraphqlError,
           resp?.data?.follow.status,
@@ -346,6 +389,8 @@ class CyberConnect {
         body: post.body,
         address: this.address,
         ts: Date.now(),
+        chainId: this.chainId,
+        handle,
       });
 
       const signature = await signWithSigningKey(content, this.address);
