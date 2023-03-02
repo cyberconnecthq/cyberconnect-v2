@@ -1,9 +1,10 @@
 import { endpoints } from './network';
 import {
-  follow,
+  follow as followQuery,
   registerSigningKey,
-  unfollow,
-  publish,
+  unfollow as unfollowQuery,
+  publishPost as publishPostQuery,
+  publishComment as publishCommentQuery,
   like as likeQuery,
   dislike as dislikeQuery,
   cancelLike,
@@ -15,9 +16,14 @@ import {
   Endpoint,
   FollowRequest,
   UnfollowRequest,
-  PublishRequest,
-  ReactType,
+  PublishPostRequest,
+  PublishCommentRequest,
+  LikeOperation,
   ReactRequest,
+  LikeMessage,
+  PostMessage,
+  CommentMessage,
+  Content,
 } from './types';
 import { getAddressByProvider, getSigningKeySignature } from './utils';
 import { Env } from '.';
@@ -107,44 +113,21 @@ class CyberConnect {
         throw new Error('signingKeySignature is empty');
       }
     } catch (e) {
-      console.log('e', e);
       clearSigningKeyByAddress(this.address);
       throw new Error('User cancel the sign process');
     }
   }
 
-  private async retryFollow(address: string, handle: string) {
+  private async retryFollow(handle: string, ts: number) {
     try {
-      this.address = await this.getAddress();
-      await this.authWithSigningKey();
-
-      const message = {
-        op: 'follow',
-        address,
-        handle: handle,
-        ts: Date.now(),
-      };
-
-      const signature = await signWithSigningKey(
-        JSON.stringify(message),
-        this.address,
-      );
-      const publicKey = await getPublicKey(this.address);
-
-      const params: FollowRequest = {
-        address,
-        handle,
-        message: JSON.stringify(message),
-        signature,
-        signingKey: publicKey,
-      };
-
-      const resp = await follow(params, this.endpoint.cyberConnectApi);
+      const params = await this.getFollowRequestParams(handle, ts);
+      const resp = await followQuery(params, this.endpoint.cyberConnectApi);
 
       if (resp?.data?.follow.status !== 'SUCCESS') {
         throw new ConnectError(
           ErrorCode.GraphqlError,
-          'retry failed' + resp?.data?.follow.status,
+          'Retry follow with ts from server failed:' +
+            resp?.data?.follow.status,
         );
       }
     } catch (e: any) {
@@ -152,33 +135,43 @@ class CyberConnect {
     }
   }
 
-  async follow(address: string, handle: string) {
+  private getHandleWithoutSuffix(handle: string) {
+    return handle.split('.')[0];
+  }
+
+  private async getFollowRequestParams(handle: string, ts?: number) {
+    this.address = await this.getAddress();
+    await this.authWithSigningKey();
+
+    const message = {
+      op: 'follow',
+      address: this.address,
+      handle: this.getHandleWithoutSuffix(handle),
+      ts: ts || Date.now(),
+    };
+
+    const signature = await signWithSigningKey(
+      JSON.stringify(message),
+      this.address,
+    );
+    const publicKey = await getPublicKey(this.address);
+
+    const params: FollowRequest = {
+      address: this.address,
+      handle,
+      message: JSON.stringify(message),
+      signature,
+      signingKey: publicKey,
+    };
+
+    return params;
+  }
+
+  async follow(handle: string) {
     try {
-      this.address = await this.getAddress();
-      await this.authWithSigningKey();
+      const params = await this.getFollowRequestParams(handle);
 
-      const message = {
-        op: 'follow',
-        address,
-        handle: handle,
-        ts: Date.now(),
-      };
-
-      const signature = await signWithSigningKey(
-        JSON.stringify(message),
-        this.address,
-      );
-      const publicKey = await getPublicKey(this.address);
-
-      const params: FollowRequest = {
-        address,
-        handle,
-        message: JSON.stringify(message),
-        signature,
-        signingKey: publicKey,
-      };
-
-      const resp = await follow(params, this.endpoint.cyberConnectApi);
+      const resp = await followQuery(params, this.endpoint.cyberConnectApi);
 
       if (resp?.data?.follow.status === 'INVALID_SIGNATURE') {
         await clearSigningKey();
@@ -190,7 +183,7 @@ class CyberConnect {
       }
 
       if (resp?.data?.follow.status === 'MESSAGE_EXPIRED') {
-        await this.retryFollow(address, handle);
+        await this.retryFollow(handle, resp?.data?.follow.tsInServer);
       } else if (resp?.data?.follow.status !== 'SUCCESS') {
         throw new ConnectError(
           ErrorCode.GraphqlError,
@@ -202,33 +195,51 @@ class CyberConnect {
     }
   }
 
-  async unfollow(address: string, handle: string) {
-    try {
-      this.address = await this.getAddress();
-      await this.authWithSigningKey();
+  private async getUnfollowRequestParams(handle: string, ts?: number) {
+    this.address = await this.getAddress();
+    await this.authWithSigningKey();
 
-      const message = {
-        op: 'unfollow',
-        address,
-        handle: handle,
-        ts: Date.now(),
-      };
+    const message = {
+      op: 'unfollow',
+      address: this.address,
+      handle: this.getHandleWithoutSuffix(handle),
+      ts: ts || Date.now(),
+    };
 
-      const signature = await signWithSigningKey(
-        JSON.stringify(message),
-        this.address,
+    const signature = await signWithSigningKey(
+      JSON.stringify(message),
+      this.address,
+    );
+    const publicKey = await getPublicKey(this.address);
+
+    const params: UnfollowRequest = {
+      address: this.address,
+      handle,
+      message: JSON.stringify(message),
+      signature,
+      signingKey: publicKey,
+    };
+
+    return params;
+  }
+
+  private async retryUnfollow(handle: string, ts: number) {
+    const params = await this.getUnfollowRequestParams(handle, ts);
+    const resp = await unfollowQuery(params, this.endpoint.cyberConnectApi);
+
+    if (resp?.data?.unfollow.status !== 'SUCCESS') {
+      throw new ConnectError(
+        ErrorCode.GraphqlError,
+        'Retry unfollow with ts from server failed:' +
+          resp?.data?.unfollow.status,
       );
-      const publicKey = await getPublicKey(this.address);
+    }
+  }
 
-      const params: UnfollowRequest = {
-        address,
-        handle,
-        message: JSON.stringify(message),
-        signature,
-        signingKey: publicKey,
-      };
-
-      const resp = await unfollow(params, this.endpoint.cyberConnectApi);
+  async unfollow(handle: string) {
+    try {
+      const params = await this.getUnfollowRequestParams(handle);
+      const resp = await unfollowQuery(params, this.endpoint.cyberConnectApi);
 
       if (resp?.data?.unfollow.status === 'INVALID_SIGNATURE') {
         await clearSigningKey();
@@ -237,6 +248,10 @@ class CyberConnect {
           ErrorCode.GraphqlError,
           resp?.data?.unfollow.status,
         );
+      }
+
+      if (resp?.data?.unfollow.status === 'MESSAGE_EXPIRED') {
+        await this.retryUnfollow(handle, resp?.data?.unfollow.tsInServer);
       }
 
       if (resp?.data?.unfollow.status !== 'SUCCESS') {
@@ -250,31 +265,43 @@ class CyberConnect {
     }
   }
 
-  async createPost(post: { title: string; body: string }, handle: string) {
-    return await this.publish(post, handle, '');
+  async createPost(content: Omit<Content, 'id'>) {
+    return await this.publishPost(content);
   }
 
-  async updatePost(
-    post: { title: string; body: string },
-    handle: string,
-    id: string,
-  ) {
-    return await this.publish(post, handle, id);
+  async updatePost(id: string, content: Content) {
+    return await this.publishPost({ ...content, id });
   }
 
-  async like(postId: string) {
+  private async retryLike(contentId: string, ts: number) {
+    const params = await this.getReactParams(contentId, 'like', ts);
+    const resp = await likeQuery(params, this.endpoint.cyberConnectApi);
+
+    if (resp?.data?.like.status !== 'SUCCESS') {
+      throw new ConnectError(
+        ErrorCode.GraphqlError,
+        'Retry with ts from server failed: ' + resp?.data?.like.status,
+      );
+    }
+  }
+
+  async like(contentId: string) {
     try {
-      const params = await this.getReactParams(postId, 'like');
+      const params = await this.getReactParams(contentId, 'like');
       const resp = await likeQuery(params, this.endpoint.cyberConnectApi);
 
       if (resp?.data?.like.status === 'SUCCESS') {
-        return resp?.data?.like.status;
+        return resp?.data?.like;
       }
 
       if (resp?.data?.like.status === 'INVALID_SIGNATURE') {
         await clearSigningKey();
 
         throw new ConnectError(ErrorCode.GraphqlError, resp?.data?.like.status);
+      }
+
+      if (resp?.data?.like.status === 'MESSAGE_EXPIRED') {
+        await this.retryLike(contentId, resp?.data?.like.tsInServer);
       }
 
       if (resp?.data?.like.status !== 'SUCCESS') {
@@ -285,9 +312,22 @@ class CyberConnect {
     }
   }
 
-  async dislike(postId: string) {
+  private async retryDislike(contentId: string, ts: number) {
+    const params = await this.getReactParams(contentId, 'dislike', ts);
+    const resp = await dislikeQuery(params, this.endpoint.cyberConnectApi);
+
+    if (resp?.data?.dislike.status !== 'SUCCESS') {
+      throw new ConnectError(
+        ErrorCode.GraphqlError,
+        'Retry dislike with ts from server failed: ' +
+          resp?.data?.dislike.status,
+      );
+    }
+  }
+
+  async dislike(contentId: string) {
     try {
-      const params = await this.getReactParams(postId, 'dislike');
+      const params = await this.getReactParams(contentId, 'dislike');
       const resp = await dislikeQuery(params, this.endpoint.cyberConnectApi);
 
       if (resp?.data?.dislike.status === 'SUCCESS') {
@@ -303,6 +343,10 @@ class CyberConnect {
         );
       }
 
+      if (resp?.data?.dislike.status === 'MESSAGE_EXPIRED') {
+        await this.retryDislike(contentId, resp?.data?.dislike.tsInServer);
+      }
+
       if (resp?.data?.dislike.status !== 'SUCCESS') {
         throw new ConnectError(
           ErrorCode.GraphqlError,
@@ -314,9 +358,22 @@ class CyberConnect {
     }
   }
 
-  async cancelReaction(postId: string) {
+  private async retryCancelReaction(contentId: string, ts: number) {
+    const params = await this.getReactParams(contentId, 'cancel', ts);
+    const resp = await cancelLike(params, this.endpoint.cyberConnectApi);
+
+    if (resp?.data?.cancelLike.status !== 'SUCCESS') {
+      throw new ConnectError(
+        ErrorCode.GraphqlError,
+        'Retry cancel like with fs from server failed: ' +
+          resp?.data?.dislike.status,
+      );
+    }
+  }
+
+  async cancelReaction(contentId: string) {
     try {
-      const params = await this.getReactParams(postId, 'cancel');
+      const params = await this.getReactParams(contentId, 'cancel');
       const resp = await cancelLike(params, this.endpoint.cyberConnectApi);
 
       if (resp?.data?.cancelLike.status === 'SUCCESS') {
@@ -332,6 +389,13 @@ class CyberConnect {
         );
       }
 
+      if (resp?.data?.cancelLike.status === 'MESSAGE_EXPIRED') {
+        await this.retryCancelReaction(
+          contentId,
+          resp?.data?.cancelLike.tsInServer,
+        );
+      }
+
       if (resp?.data?.cancelLike.status !== 'SUCCESS') {
         throw new ConnectError(
           ErrorCode.GraphqlError,
@@ -343,16 +407,20 @@ class CyberConnect {
     }
   }
 
-  private async getReactParams(postId: string, operation: ReactType) {
+  private async getReactParams(
+    contentId: string,
+    operation: LikeOperation,
+    ts?: number,
+  ) {
     try {
       this.address = await this.getAddress();
       await this.authWithSigningKey();
 
-      const message = {
+      const message: LikeMessage = {
         op: operation,
         address: this.address,
-        postId,
-        ts: Date.now(),
+        target: contentId,
+        ts: ts || Date.now(),
       };
 
       const signature = await signWithSigningKey(
@@ -363,7 +431,7 @@ class CyberConnect {
 
       const params: ReactRequest = {
         address: this.address,
-        postId,
+        contentID: contentId,
         message: JSON.stringify(message),
         signature,
         signingKey: publicKey,
@@ -375,57 +443,204 @@ class CyberConnect {
     }
   }
 
-  private async publish(
-    post: { title: string; body: string },
-    handle: string = '',
-    id: string,
+  private async getCommentParams(
+    content: Content,
+    targetContentId: string,
+    ts?: number,
   ) {
+    this.address = await this.getAddress();
+    await this.authWithSigningKey();
+
+    const messageBody: CommentMessage = {
+      op: 'comment',
+      title: content.title,
+      body: content.body,
+      address: this.address,
+      ts: ts || Date.now(),
+      chainId: this.chainId,
+      target: targetContentId,
+      handle: this.getHandleWithoutSuffix(content.author),
+    };
+
+    const stringifiedMessage = JSON.stringify(messageBody);
+
+    const signature = await signWithSigningKey(
+      stringifiedMessage,
+      this.address,
+    );
+    const publicKey = await getPublicKey(this.address);
+
+    const params: {
+      contentId?: string;
+      input: PublishCommentRequest;
+      targetContentId: string;
+    } = {
+      contentId: content.id,
+      targetContentId,
+      input: {
+        authorAddress: this.address,
+        authorHandle: content.author,
+        message: stringifiedMessage,
+        signature,
+        signingKey: publicKey,
+      },
+    };
+
+    return params;
+  }
+
+  private async retryPublishComment(
+    content: Content,
+    targetContentId: string,
+    ts: number,
+  ) {
+    const params = await this.getCommentParams(content, targetContentId, ts);
+
+    const resp = await publishCommentQuery(
+      params,
+      this.endpoint.cyberConnectApi,
+    );
+
+    if (resp?.data?.publishComment.status !== 'SUCCESS') {
+      throw new ConnectError(
+        ErrorCode.GraphqlError,
+        'Retry comment with ts from server failed: ' +
+          resp?.data?.publishComment.status,
+      );
+    }
+  }
+
+  private async publishComment(targetContentId: string, content: Content) {
     try {
-      this.address = await this.getAddress();
-      await this.authWithSigningKey();
+      const params = await this.getCommentParams(content, targetContentId);
 
-      const content = JSON.stringify({
-        title: post.title,
-        body: post.body,
-        address: this.address,
-        ts: Date.now(),
-        chainId: this.chainId,
-        handle,
-      });
+      const resp = await publishCommentQuery(
+        params,
+        this.endpoint.cyberConnectApi,
+      );
 
-      const signature = await signWithSigningKey(content, this.address);
-      const publicKey = await getPublicKey(this.address);
-
-      const params: { id: string; input: PublishRequest } = {
-        id: id,
-        input: {
-          author: this.address,
-          content: content,
-          signature,
-          signingKey: publicKey,
-          handle,
-        },
-      };
-
-      const resp = await publish(params, this.endpoint.cyberConnectApi);
-
-      if (resp?.data?.publish.status === 'SUCCESS') {
-        return resp?.data?.publish;
+      if (resp?.data?.publishComment.status === 'SUCCESS') {
+        return resp?.data?.publishComment;
       }
 
-      if (resp?.data?.publish.status === 'INVALID_SIGNATURE') {
+      if (resp?.data?.publishComment.status === 'INVALID_SIGNATURE') {
         await clearSigningKey();
 
         throw new ConnectError(
           ErrorCode.GraphqlError,
-          resp?.data?.follow.status,
+          resp?.data?.publishComment.status,
         );
       }
 
-      if (resp?.data?.publish.status !== 'SUCCESS') {
+      if (resp?.data?.publishComment.status === 'MESSAGE_EXPIRED') {
+        await this.retryPublishComment(
+          content,
+          targetContentId,
+          resp?.data?.publishComment.tsInServer,
+        );
+      }
+
+      if (resp?.data?.publishComment.status !== 'SUCCESS') {
         throw new ConnectError(
           ErrorCode.GraphqlError,
-          resp?.data?.follow.status,
+          resp?.data?.publishComment.status,
+        );
+      }
+    } catch (e: any) {
+      throw new ConnectError(ErrorCode.GraphqlError, e.message || e);
+    }
+  }
+
+  async createComment(targetContentId: string, content: Content) {
+    return await this.publishComment(targetContentId, content);
+  }
+
+  async updateComment(id: string, targetContentId: string, content: Content) {
+    return await this.publishComment(targetContentId, { ...content, id });
+  }
+
+  private async getPublishPostParams(content: Content, ts?: number) {
+    this.address = await this.getAddress();
+    await this.authWithSigningKey();
+
+    const messageBody: PostMessage = {
+      op: 'post',
+      title: content.title,
+      body: content.body,
+      address: this.address,
+      ts: ts || Date.now(),
+      chainId: this.chainId,
+      handle: this.getHandleWithoutSuffix(content.author),
+    };
+
+    const stringifiedMessage = JSON.stringify(messageBody);
+
+    const signature = await signWithSigningKey(
+      stringifiedMessage,
+      this.address,
+    );
+    const publicKey = await getPublicKey(this.address);
+
+    const params: { contentId?: string; input: PublishPostRequest } = {
+      contentId: content.id,
+      input: {
+        authorAddress: this.address,
+        message: stringifiedMessage,
+        signature,
+        signingKey: publicKey,
+        authorHandle: content.author,
+      },
+    };
+
+    return params;
+  }
+
+  private async retryPublishPost(content: Content, ts: number) {
+    const params = await this.getPublishPostParams(content, ts);
+    const resp = await publishPostQuery(params, this.endpoint.cyberConnectApi);
+
+    if (resp?.data?.publishPost.status !== 'SUCCESS') {
+      throw new ConnectError(
+        ErrorCode.GraphqlError,
+        'Retry publish with ts from server failed: ' +
+          resp?.data?.publishPost.status,
+      );
+    }
+  }
+
+  private async publishPost(content: Content) {
+    try {
+      const params = await this.getPublishPostParams(content);
+      const resp = await publishPostQuery(
+        params,
+        this.endpoint.cyberConnectApi,
+      );
+
+      if (resp?.data?.publishPost.status === 'SUCCESS') {
+        return resp?.data?.publishPost;
+      }
+
+      if (resp?.data?.publishPost.status === 'INVALID_SIGNATURE') {
+        await clearSigningKey();
+
+        throw new ConnectError(
+          ErrorCode.GraphqlError,
+          resp?.data?.publishPost.status,
+        );
+      }
+
+      if (resp?.data?.publishPost.status === 'MESSAGE_EXPIRED') {
+        await this.retryPublishPost(
+          content,
+          resp?.data?.publishPost.tsInServer,
+        );
+        return;
+      }
+
+      if (resp?.data?.publishPost.status !== 'SUCCESS') {
+        throw new ConnectError(
+          ErrorCode.GraphqlError,
+          resp?.data?.publishPost.status,
         );
       }
     } catch (e: any) {
