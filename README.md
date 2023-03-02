@@ -32,122 +32,31 @@ const cyberConnect = new CyberConnect({
 - `provider` - The corresponding provider of the given chain.
 - `signingMessageEntity` - (optional) Use to describe the entity users sign their message with. Users will see it when authorizing in the wallet `I authorize ${signingMessageEntity} from this device using signing key:`. The default entity is `CyberConnect`.
 
-### Follow
+#### Follow
 
 ```ts
-cyberConnect.follow(address, handle);
+cyberConnect.follow(handle);
 ```
 
-- `address` - Current signed in wallet address.
-- `handle` - The target handle.
+- `handle` - The ccProfile handle to follow.
 
-### Unfollow
+#### Unfollow
 
 ```ts
-cyberConnect.unfollow(address, handle);
+cyberConnect.unfollow(handle);
 ```
 
-- `address` - Current signed in wallet address.
-- `handle` - The target handle.
+- `handle` - The ccProfile handle to unfollow.
 
-### Create post
-
-```ts
-cyberConnect.createPost(post, handle);
-```
-
-**Parameters**
-
-- `post: Post` - post content
-- `handle: string` - author's profile handle
+### Like content
 
 ```ts
-type Post = {
-  title: string;
-  body: string;
-};
-```
-
-**Return**
-
-- `response: PublishResponse` - publish response
-
-```ts
-type PublishResponse = {
-  status: Status;
-  id: string;
-  arweaveTxHash: string;
-};
-
-enum Status {
-  SUCCESS,
-  INVALID_ADDRESS,
-  INVALID_ID,
-  RATE_LIMITED,
-  NOT_FOUND,
-  ALREADY_EXISTED,
-  INVALID_MESSAGE,
-  INVALID_SIGNATURE,
-  MESSAGE_EXPIRED,
-  INVALID_SIGNING_KEY,
-}
-```
-
-### Update post
-
-```ts
-cyberConnect.updatePost(post, handle, id);
+cyberConnect.like(id);
 ```
 
 **Parameters**
 
-- `post: Post` - post content
-
-- `handle: string` - author's profile handle
-
-```ts
-type Post = {
-  title: string;
-  body: string;
-};
-```
-
-- `id: string` - target post id
-
-**Return**
-
-- `response: PublishResponse` - publish response
-
-```ts
-type PublishResponse = {
-  status: Status;
-  id: string;
-  arweaveTxHash: string;
-};
-
-enum Status {
-  SUCCESS,
-  INVALID_ADDRESS,
-  INVALID_ID,
-  RATE_LIMITED,
-  NOT_FOUND,
-  ALREADY_EXISTED,
-  INVALID_MESSAGE,
-  INVALID_SIGNATURE,
-  MESSAGE_EXPIRED,
-  INVALID_SIGNING_KEY,
-}
-```
-
-### Like post
-
-```ts
-cyberConnect.like(postId);
-```
-
-**Parameters**
-
-- `postId: string` - post id
+- `id: string` - The content id to like which can the id of a post, comment or an essence.
 
 **Return**
 
@@ -160,9 +69,9 @@ type LikeResponse = {
 
 enum Status {
   SUCCESS,
-  INVALID_ADDRESS,
+  INVALID_PARAMS,
   RATE_LIMITED,
-  POST_NOT_FOUND,
+  TARGET_NOT_FOUND,
   ALREADY_DONE,
   INVALID_MESSAGE,
   INVALID_SIGNATURE,
@@ -173,12 +82,12 @@ enum Status {
 ### Dislike post
 
 ```ts
-cyberConnect.dislike(postId);
+cyberConnect.dislike(id);
 ```
 
 **Parameters**
 
-- `postId: string` - post id
+- `id: string` - The content id to dislike which can the id of a post, comment or an essence.
 
 **Return**
 
@@ -186,14 +95,15 @@ cyberConnect.dislike(postId);
 
 ```ts
 type DislikeResponse = {
+  tsInServer: number;
   status: Status;
 };
 
 enum Status {
   SUCCESS,
-  INVALID_ADDRESS,
+  INVALID_PARAMS,
   RATE_LIMITED,
-  POST_NOT_FOUND,
+  TARGET_NOT_FOUND,
   ALREADY_DONE,
   INVALID_MESSAGE,
   INVALID_SIGNATURE,
@@ -201,34 +111,223 @@ enum Status {
 }
 ```
 
-### Cancel reaction(like/dislike) on post
+### Cancel reaction
 
 ```ts
-cyberConnect.cancelReaction(postId);
+cyberConnect.cancelReaction(id);
 ```
 
 **Parameters**
 
-- `postId: string` - post id
+- `id: string` - The content id to cancel reaction on which can the id of a post, comment or an essence.
 
 **Return**
 
-- `response: CancelLikeResponse` - cancel reaction response
+- `response: CancelReactionResponse` - cancel reaction response
 
 ```ts
-type CancelLikeResponse = {
+type CancelReactionResponse = {
   status: Status;
 };
 
 enum Status {
   SUCCESS,
-  INVALID_ADDRESS,
+  INVALID_PARAMS,
   RATE_LIMITED,
-  POST_NOT_FOUND,
+  TARGET_NOT_FOUND,
   ALREADY_DONE,
   INVALID_MESSAGE,
   INVALID_SIGNATURE,
   MESSAGE_EXPIRED,
+}
+```
+
+### Creating post
+
+```ts
+cyberConnect.createPost(content);
+```
+
+**Parameters**
+
+- `content: Content` - post content
+
+```ts
+interface Content {
+  title: string;
+  body: string;
+  author: string; // The ccProfile handle of the author
+}
+```
+
+**Return**
+
+- `response: PublishResponse` - publish response
+
+```ts
+type PublishResponse = {
+  status: Status;
+  contentID: string;
+  arweaveTxHash: string;
+  tsInServer: number;
+};
+
+enum Status {
+  SUCCESS,
+  INVALID_PARAMS,
+  RATE_LIMITED,
+  HANDLE_NOT_FOUND,
+  CONTENT_NOT_FOUND,
+  TARGET_NOT_FOUND,
+  NOT_PROFILE_OWNER,
+  ALREADY_EXISTED,
+  INVALID_MESSAGE,
+  INVALID_SIGNATURE,
+  MESSAGE_EXPIRED,
+  INVALID_SIGNING_KEY,
+}
+```
+
+### Updating post
+
+```ts
+cyberConnect.updatePost(id, content);
+```
+
+**Parameters**
+
+- `id: string` - published post id
+- `content: Content` - new post content
+
+```ts
+interface Content {
+  title: string;
+  body: string;
+  author: string; // The ccProfile handle of the author
+}
+```
+
+**Return**
+
+- `response: PublishResponse` - publish response
+
+```ts
+type PublishResponse = {
+  status: Status;
+  contentID: string;
+  arweaveTxHash: string;
+  tsInServer: number;
+};
+
+enum Status {
+  SUCCESS,
+  INVALID_PARAMS,
+  RATE_LIMITED,
+  HANDLE_NOT_FOUND,
+  CONTENT_NOT_FOUND,
+  TARGET_NOT_FOUND,
+  NOT_PROFILE_OWNER,
+  ALREADY_EXISTED,
+  INVALID_MESSAGE,
+  INVALID_SIGNATURE,
+  MESSAGE_EXPIRED,
+  INVALID_SIGNING_KEY,
+}
+```
+
+### Creating comment
+
+```ts
+cyberConnect.createComment(targetContentId, content);
+```
+
+**Parameters**
+
+- `targetContentId: string` - target content id to comment on, which can be a post, an essence or a comment
+
+- `content: Content` - comment content
+
+```ts
+interface Content {
+  title: string;
+  body: string;
+  author: string; // The ccProfile handle of the author
+}
+```
+
+**Return**
+
+- `response: PublishResponse` - publish response
+
+```ts
+type PublishResponse = {
+  status: Status;
+  contentID: string;
+  arweaveTxHash: string;
+  tsInServer: number;
+};
+
+enum Status {
+  SUCCESS,
+  INVALID_PARAMS,
+  RATE_LIMITED,
+  HANDLE_NOT_FOUND,
+  CONTENT_NOT_FOUND,
+  TARGET_NOT_FOUND,
+  NOT_PROFILE_OWNER,
+  ALREADY_EXISTED,
+  INVALID_MESSAGE,
+  INVALID_SIGNATURE,
+  MESSAGE_EXPIRED,
+  INVALID_SIGNING_KEY,
+}
+```
+
+### Updating comment
+
+```ts
+cyberConnect.updateComment(commentId,, targetContentId, content);
+```
+
+**Parameters**
+
+- `commentId: string` - comment id to update
+- `targetContentId: string` - target content id to comment on, which can be a post, an essence or a comment
+- `content: Content` - new comment content
+
+```ts
+interface Content {
+  title: string;
+  body: string;
+  author: string; // The ccProfile handle of the author
+}
+```
+
+**Return**
+
+- `response: PublishResponse` - publish response
+
+```ts
+type PublishResponse = {
+  status: Status;
+  contentID: string;
+  arweaveTxHash: string;
+  tsInServer: number;
+};
+
+enum Status {
+  SUCCESS,
+  INVALID_PARAMS,
+  RATE_LIMITED,
+  HANDLE_NOT_FOUND,
+  CONTENT_NOT_FOUND,
+  TARGET_NOT_FOUND,
+  NOT_PROFILE_OWNER,
+  ALREADY_EXISTED,
+  INVALID_MESSAGE,
+  INVALID_SIGNATURE,
+  MESSAGE_EXPIRED,
+  INVALID_SIGNING_KEY,
 }
 ```
 
