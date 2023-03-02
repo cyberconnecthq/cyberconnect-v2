@@ -79,7 +79,7 @@ enum Status {
 }
 ```
 
-### Dislike post
+### Dislike content
 
 ```ts
 cyberConnect.dislike(id);
