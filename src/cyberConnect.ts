@@ -8,6 +8,10 @@ import {
   like as likeQuery,
   dislike as dislikeQuery,
   cancelLike,
+  createFollowTypedMessage,
+  createPublishPostTypedMessage,
+  createPublishCommentTypedMessage,
+  createLikeTypedMessage,
 } from './queries';
 import { ConnectError, ErrorCode } from './error';
 import {
@@ -56,7 +60,7 @@ class CyberConnect {
       throw new ConnectError(ErrorCode.EmptyNamespace);
     }
 
-    this.chainId = env === Env.PRODUCTION ? 56 : 97;
+    this.chainId = env === Env.STAGING ? 97 : 56;
     this.namespace = namespace;
     this.endpoint = endpoints[env || Env.PRODUCTION];
     this.chain = chain || Blockchain.ETH;
@@ -143,23 +147,26 @@ class CyberConnect {
     this.address = await this.getAddress();
     await this.authWithSigningKey();
 
-    const message = {
-      op: 'follow',
+    const input = {
       address: this.address,
-      handle: this.getHandleWithoutSuffix(handle),
-      ts: ts || Date.now(),
-    };
+      handle: handle,
+      operation: 'FOLLOW',
+    } as const;
 
-    const signature = await signWithSigningKey(
-      JSON.stringify(message),
-      this.address,
+    const res = await createFollowTypedMessage(
+      input,
+      this.endpoint.cyberConnectApi,
     );
+
+    const message = res.data.createFollowTypedMessage.message;
+
+    const signature = await signWithSigningKey(message, this.address);
     const publicKey = await getPublicKey(this.address);
 
     const params: FollowRequest = {
       address: this.address,
       handle,
-      message: JSON.stringify(message),
+      message,
       signature,
       signingKey: publicKey,
     };
@@ -199,23 +206,26 @@ class CyberConnect {
     this.address = await this.getAddress();
     await this.authWithSigningKey();
 
-    const message = {
-      op: 'unfollow',
+    const input = {
       address: this.address,
-      handle: this.getHandleWithoutSuffix(handle),
-      ts: ts || Date.now(),
-    };
+      handle: handle,
+      operation: 'UNFOLLOW',
+    } as const;
 
-    const signature = await signWithSigningKey(
-      JSON.stringify(message),
-      this.address,
+    const res = await createFollowTypedMessage(
+      input,
+      this.endpoint.cyberConnectApi,
     );
+
+    const message = res.data.createFollowTypedMessage.message;
+
+    const signature = await signWithSigningKey(message, this.address);
     const publicKey = await getPublicKey(this.address);
 
     const params: UnfollowRequest = {
       address: this.address,
       handle,
-      message: JSON.stringify(message),
+      message,
       signature,
       signingKey: publicKey,
     };
@@ -416,23 +426,26 @@ class CyberConnect {
       this.address = await this.getAddress();
       await this.authWithSigningKey();
 
-      const message: LikeMessage = {
-        op: operation,
+      const input = {
         address: this.address,
-        target: contentId,
-        ts: ts || Date.now(),
-      };
+        contentID: contentId,
+        operation: operation.toUpperCase() as 'LIKE' | 'DISLIKE' | 'CANCEL',
+      } as const;
 
-      const signature = await signWithSigningKey(
-        JSON.stringify(message),
-        this.address,
+      const res = await createLikeTypedMessage(
+        input,
+        this.endpoint.cyberConnectApi,
       );
+
+      const message = res.data.createLikeTypedMessage.message;
+
+      const signature = await signWithSigningKey(message, this.address);
       const publicKey = await getPublicKey(this.address);
 
       const params: ReactRequest = {
         address: this.address,
         contentID: contentId,
-        message: JSON.stringify(message),
+        message,
         signature,
         signingKey: publicKey,
       };
@@ -451,23 +464,22 @@ class CyberConnect {
     this.address = await this.getAddress();
     await this.authWithSigningKey();
 
-    const messageBody: CommentMessage = {
-      op: 'comment',
+    const input = {
+      address: this.address,
+      targetContentID: targetContentId,
       title: content.title,
       body: content.body,
-      address: this.address,
-      ts: ts || Date.now(),
-      chainId: this.chainId,
-      target: targetContentId,
       handle: this.getHandleWithoutSuffix(content.author),
-    };
+    } as const;
 
-    const stringifiedMessage = JSON.stringify(messageBody);
-
-    const signature = await signWithSigningKey(
-      stringifiedMessage,
-      this.address,
+    const res = await createPublishCommentTypedMessage(
+      input,
+      this.endpoint.cyberConnectApi,
     );
+
+    const message = res.data.createPublishCommentTypedMessage.message;
+
+    const signature = await signWithSigningKey(message, this.address);
     const publicKey = await getPublicKey(this.address);
 
     const params: {
@@ -480,7 +492,7 @@ class CyberConnect {
       input: {
         authorAddress: this.address,
         authorHandle: content.author,
-        message: stringifiedMessage,
+        message,
         signature,
         signingKey: publicKey,
       },
@@ -563,29 +575,28 @@ class CyberConnect {
     this.address = await this.getAddress();
     await this.authWithSigningKey();
 
-    const messageBody: PostMessage = {
-      op: 'post',
+    const input = {
+      address: this.address,
+      handle: this.getHandleWithoutSuffix(content.author),
       title: content.title,
       body: content.body,
-      address: this.address,
-      ts: ts || Date.now(),
-      chainId: this.chainId,
-      handle: this.getHandleWithoutSuffix(content.author),
-    };
+    } as const;
 
-    const stringifiedMessage = JSON.stringify(messageBody);
-
-    const signature = await signWithSigningKey(
-      stringifiedMessage,
-      this.address,
+    const res = await createPublishPostTypedMessage(
+      input,
+      this.endpoint.cyberConnectApi,
     );
+
+    const message = res.data.createPublishPostTypedMessage.message;
+
+    const signature = await signWithSigningKey(message, this.address);
     const publicKey = await getPublicKey(this.address);
 
     const params: { contentId?: string; input: PublishPostRequest } = {
       contentId: content.id,
       input: {
         authorAddress: this.address,
-        message: stringifiedMessage,
+        message,
         signature,
         signingKey: publicKey,
         authorHandle: content.author,

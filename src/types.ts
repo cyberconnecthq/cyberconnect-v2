@@ -235,3 +235,28 @@ export interface Content {
   author: string;
   id?: string;
 }
+
+export type FollowTypedMessageInput = {
+  address: string;
+  handle: string;
+  operation: 'FOLLOW' | 'UNFOLLOW';
+};
+
+export type LikeTypedMessageInput = {
+  address: string;
+  operation: 'LIKE' | 'DISLIKE' | 'CANCEL';
+  contentID: string;
+};
+export type PublishPostTypedMessageInput = {
+  address: string;
+  handle: string;
+  title: string;
+  body: string;
+};
+export type PublishCommentTypedMessageInput = {
+  address: string;
+  handle: string;
+  targetContentID: string;
+  title: string;
+  body: string;
+};

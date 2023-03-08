@@ -11,6 +11,10 @@ import {
   PublishPostRequest,
   PublishCommentRequest,
   ReactRequest,
+  FollowTypedMessageInput,
+  LikeTypedMessageInput,
+  PublishPostTypedMessageInput,
+  PublishCommentTypedMessageInput,
 } from './types';
 
 export type Query = 'connect' | 'disconnect';
@@ -246,6 +250,58 @@ export const authSchema = ({
   };
 };
 
+export const createFollowTypedMessageSchema = (
+  input: FollowTypedMessageInput,
+) => {
+  return {
+    operationName: 'createFollowTypedMessage',
+    query: `query createFollowTypedMessage($input: CreateFollowTypedMessageInput!) {
+	          createFollowTypedMessage(input: $input) {
+			  message
+		  }
+    		}`,
+    variables: { input },
+  };
+};
+
+export const createLikeTypedMessageSchema = (input: LikeTypedMessageInput) => {
+  return {
+    operationName: 'createLikeTypedMessage',
+    query: `query createLikeTypedMessage($input: CreateLikeTypedMessageInput!) {
+	          createLikeTypedMessage(input: $input) {
+			  message
+		  }
+    		}`,
+    variables: { input },
+  };
+};
+export const createPublishPostTypedMessageSchema = (
+  input: PublishPostTypedMessageInput,
+) => {
+  return {
+    operationName: 'createPublishPostTypedMessage',
+    query: `query createPublishPostTypedMessage($input: CreatePublishPostTypedMessageInput!) {
+	          createPublishPostTypedMessage(input: $input) {
+			  message
+		  }
+    		}`,
+    variables: { input },
+  };
+};
+export const createPublishCommentTypedMessageSchema = (
+  input: PublishCommentTypedMessageInput,
+) => {
+  return {
+    operationName: 'createPublishCommentTypedMessage',
+    query: `query createPublishCommentTypedMessage($input: CreatePublishCommentTypedMessageInput!) {
+	          createPublishCommentTypedMessage(input: $input) {
+			  message
+		  }
+    		}`,
+    variables: { input },
+  };
+};
+
 export const querySchemas = {
   cancelLike: cancelLikeSchema,
   dislike: dislikeSchema,
@@ -263,6 +319,10 @@ export const querySchemas = {
   registerSigningKey: registerSigningKeySchema,
   ackNotifications: ackNotificationsQuerySchema,
   ackAllNotifications: ackAllNotificationsQuerySchema,
+  createFollowTypedMessage: createFollowTypedMessageSchema,
+  createLikeTypedMessage: createLikeTypedMessageSchema,
+  createPublishPostTypedMessage: createPublishPostTypedMessageSchema,
+  createPublishCommentTypedMessage: createPublishCommentTypedMessageSchema,
 };
 
 export const request = async (url = '', data = {}) => {
@@ -323,6 +383,38 @@ export const auth = ({
     network,
   });
   return handleQuery(result, url);
+};
+
+export const createFollowTypedMessage = (
+  input: FollowTypedMessageInput,
+  url: string,
+) => {
+  const schema = querySchemas['createFollowTypedMessage'](input);
+  return handleQuery(schema, url);
+};
+
+export const createLikeTypedMessage = (
+  input: LikeTypedMessageInput,
+  url: string,
+) => {
+  const schema = querySchemas['createLikeTypedMessage'](input);
+  return handleQuery(schema, url);
+};
+
+export const createPublishPostTypedMessage = (
+  input: PublishPostTypedMessageInput,
+  url: string,
+) => {
+  const schema = querySchemas['createPublishPostTypedMessage'](input);
+  return handleQuery(schema, url);
+};
+
+export const createPublishCommentTypedMessage = (
+  input: PublishCommentTypedMessageInput,
+  url: string,
+) => {
+  const schema = querySchemas['createPublishCommentTypedMessage'](input);
+  return handleQuery(schema, url);
 };
 
 export const cancelLike = (input: ReactRequest, url: string) => {
