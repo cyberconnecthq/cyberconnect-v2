@@ -51,10 +51,26 @@ class CyberConnect {
   provider: any = null;
   signingMessageEntity: string | undefined = '';
   chainId: number;
+  appId: string;
 
   constructor(config: Config) {
-    const { provider, namespace, env, chainRef, chain, signingMessageEntity } =
-      config;
+    const {
+      provider,
+      namespace,
+      env,
+      chainRef,
+      chain,
+      signingMessageEntity,
+      appId,
+    } = config;
+
+    if (!appId) {
+      throw new ConnectError(ErrorCode.EmptyAppId);
+    }
+
+    if (appId.length > 128) {
+      throw new ConnectError(ErrorCode.AppIdTooLong);
+    }
 
     if (!namespace) {
       throw new ConnectError(ErrorCode.EmptyNamespace);
@@ -67,6 +83,7 @@ class CyberConnect {
     this.chainRef = chainRef || '';
     this.provider = provider;
     this.signingMessageEntity = signingMessageEntity;
+    this.appId = appId;
     delete window.localStorage[C_ACCESS_TOKEN_KEY];
   }
 
@@ -101,6 +118,7 @@ class CyberConnect {
       );
       if (signingKeySignature) {
         const resp = await registerSigningKey({
+          appId: this.appId,
           address: this.address,
           signature: signingKeySignature,
           message,

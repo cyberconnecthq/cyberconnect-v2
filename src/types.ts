@@ -21,6 +21,7 @@ export interface ConfigBase {
   env?: keyof typeof Env;
   provider: any;
   signingMessageEntity?: string;
+  appId: string;
 }
 
 export interface ConfigEth {
@@ -94,6 +95,7 @@ export interface RegisterSigningKeyInput {
   address: string;
   message: string;
   signature: string;
+  appId: string;
 }
 
 export interface UpdateConnectionInput {

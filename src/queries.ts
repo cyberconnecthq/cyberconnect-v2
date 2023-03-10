@@ -356,12 +356,14 @@ export const registerSigningKey = ({
   address,
   message,
   signature,
+  appId,
   url,
 }: RegisterSigningKeyInput & { url: string }) => {
   const result = querySchemas['registerSigningKey']({
     address,
     message,
     signature,
+    appId,
   });
   return handleQuery(result, url);
 };
