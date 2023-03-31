@@ -198,7 +198,10 @@ class CyberConnect {
 
       const resp = await followQuery(params, this.endpoint.cyberConnectApi);
 
-      if (resp?.data?.follow.status === 'INVALID_SIGNATURE') {
+      if (
+        resp?.data?.follow.status === 'INVALID_SIGNATURE' ||
+        resp?.data?.follow.status === 'EXPIRED_SIGNING_KEY'
+      ) {
         await clearSigningKey();
 
         throw new ConnectError(
@@ -269,7 +272,10 @@ class CyberConnect {
       const params = await this.getUnfollowRequestParams(handle);
       const resp = await unfollowQuery(params, this.endpoint.cyberConnectApi);
 
-      if (resp?.data?.unfollow.status === 'INVALID_SIGNATURE') {
+      if (
+        resp?.data?.unfollow.status === 'INVALID_SIGNATURE' ||
+        resp?.data?.unfollow.status === 'EXPIRED_SIGNING_KEY'
+      ) {
         await clearSigningKey();
 
         throw new ConnectError(
@@ -322,7 +328,10 @@ class CyberConnect {
         return resp?.data?.like;
       }
 
-      if (resp?.data?.like.status === 'INVALID_SIGNATURE') {
+      if (
+        resp?.data?.like.status === 'INVALID_SIGNATURE' ||
+        resp?.data?.like.status === 'EXPIRED_SIGNING_KEY'
+      ) {
         await clearSigningKey();
 
         throw new ConnectError(ErrorCode.GraphqlError, resp?.data?.like.status);
@@ -362,7 +371,10 @@ class CyberConnect {
         return resp?.data?.dislike.status;
       }
 
-      if (resp?.data?.dislike.status === 'INVALID_SIGNATURE') {
+      if (
+        resp?.data?.dislike.status === 'INVALID_SIGNATURE' ||
+        resp?.data?.dislike.status === 'EXPIRED_SIGNING_KEY'
+      ) {
         await clearSigningKey();
 
         throw new ConnectError(
@@ -408,7 +420,10 @@ class CyberConnect {
         return resp?.data?.cancelLike.status;
       }
 
-      if (resp?.data?.cancelLike.status === 'INVALID_SIGNATURE') {
+      if (
+        resp?.data?.cancelLike.status === 'INVALID_SIGNATURE' ||
+        resp?.data?.cancelLike.status === 'EXPIRED_SIGNING_KEY'
+      ) {
         await clearSigningKey();
 
         throw new ConnectError(
@@ -553,7 +568,10 @@ class CyberConnect {
         return resp?.data?.publishComment;
       }
 
-      if (resp?.data?.publishComment.status === 'INVALID_SIGNATURE') {
+      if (
+        resp?.data?.publishComment.status === 'INVALID_SIGNATURE' ||
+        resp?.data?.publishComment.status === 'EXPIRED_SIGNING_KEY'
+      ) {
         await clearSigningKey();
 
         throw new ConnectError(
@@ -649,7 +667,10 @@ class CyberConnect {
         return resp?.data?.publishPost;
       }
 
-      if (resp?.data?.publishPost.status === 'INVALID_SIGNATURE') {
+      if (
+        resp?.data?.publishPost.status === 'INVALID_SIGNATURE' ||
+        resp?.data?.publishPost.status === 'EXPIRED_SIGNING_KEY'
+      ) {
         await clearSigningKey();
 
         throw new ConnectError(
